@@ -11,9 +11,10 @@
                  [com.novemberain/monger "3.1.0"]
                  [overtone/at-at "1.2.0"]
                  [environ "1.2.0"]
-                 [clojurewerkz/quartzite "2.1.0"]
-                 [org.clojure/tools.logging "1.1.0"]]
-  :plugins [[lein-environ "1.0.0"]]
+                ;  [clojurewerkz/quartzite "2.1.0"]
+                ;  [org.clojure/tools.logging "1.1.0"]
+                 ]
+  ; :plugins [[lein-environ "1.0.0"]]
   :main twitter-bot.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

@@ -9,7 +9,8 @@
             [twttr.auth :refer [env->UserCredentials]]
             [twitter-bot.files.read :as fl]
             [overtone.at-at :as overtone]
-            [clojure.tools.logging :as log]))
+            ; [clojure.tools.logging :as log]
+            ))
 
 (def custom-formatter (format/formatter "yyyy-MM-dd"))
 
@@ -82,7 +83,7 @@
 (defn -main
   [& args]
   (let [;; loading config file
-        ; config (clojure.edn/read-string (slurp (io/resource "config.edn")))
+        config (clojure.edn/read-string (slurp (io/resource "config.edn")))
         creds (env->UserCredentials)]
     (println "Started up")
     (overtone/every
