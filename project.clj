@@ -13,7 +13,6 @@
                  [environ "1.2.0"]
                  [clojurewerkz/quartzite "2.1.0"]
                  [org.clojure/tools.logging "1.1.0"]]
-  :jvm-opts ["-Dclojure.tools.logging.factory=clojure.tools.logging.impl/slf4j-factory"]
   :plugins [[lein-environ "1.0.0"]]
   :main twitter-bot.core
   :target-path "target/%s"
