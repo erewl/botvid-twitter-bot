@@ -15,6 +15,6 @@
                  [org.clojure/tools.logging "1.1.0"]]
   :jvm-opts ["-Dclojure.tools.logging.factory=clojure.tools.logging.impl/slf4j-factory"]
   :plugins [[lein-environ "1.0.0"]]
-  :main ^:skip-aot twitter-bot.core
+  :main twitter-bot.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
