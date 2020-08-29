@@ -102,14 +102,17 @@
   [& args]
   (let [;; loading config file
         config (clojure.edn/read-string (slurp (io/resource "config.edn")))
-        s   (-> (qs/initialize) qs/start)
-        job (j/build
-             (j/of-type NoOpJob)
-             (j/with-identity (j/key "jobs.noop.1")))
-        trigger (t/build
-                 (t/with-identity (t/key "triggers.1"))
-                 (t/start-now)
-                 (t/with-schedule (schedule
-                                   (cron-schedule "*/30 * * * *"))))]
-    (qs/schedule s job trigger)
-    (println "Started up")))
+        ;; s   (-> (qs/initialize) qs/start)
+        ;; job (j/build
+        ;;      (j/of-type NoOpJob)
+        ;;      (j/with-identity (j/key "jobs.noop.1")))
+        ;; trigger (t/build
+        ;;          (t/with-identity (t/key "triggers.1"))
+        ;;          (t/start-now)
+        ;;          (t/with-schedule (schedule
+        ;;                            (cron-schedule "*/30 * * * *"))))
+        ]
+    ;; (qs/schedule s job trigger)
+    (println "Started up")
+    (bundle "NLD"))
+  )
