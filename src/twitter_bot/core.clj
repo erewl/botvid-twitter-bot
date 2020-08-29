@@ -91,12 +91,12 @@
         data (prepareData  "https://covid.ourworldindata.org/data/owid-covid-data.csv" isoCode)]
     (if (some? data)
       (let [[yesterday today] (take-last 2 data)]
-        (devtweet creds today yesterday))
+        (tweet creds today yesterday))
       (println (str "Unable to find data for isoCode " isoCode)))))
 
 (defjob SecondJob
   [ctx]
-  (println "Does nothing"))
+  (bundle "NLD"))
 
 (defn -main
   [& args]
@@ -110,7 +110,6 @@
                  (t/with-identity (t/key "triggers.1"))
                  (t/start-now)
                  (t/with-schedule (schedule
-                                   (cron-schedule "0/5 0/1 * 1/1 * ? *"))))]
-    (qs/schedule s job trigger)
+                                   (cron-schedule "0 0 13 1/1 * ? *"))))]
     (println "Started up")
-    (bundle "NLD")))
+    (qs/schedule s job trigger)))
