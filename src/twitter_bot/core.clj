@@ -11,8 +11,9 @@
             [twttr.auth :refer [env->UserCredentials]]
             [twitter-bot.files.read :as fl]
             [overtone.at-at :as overtone]
+            ;; quartzite
             [clojurewerkz.quartzite.scheduler :as qs]
-            [clojurewerkz.quartzite.jobs :as j]
+            [clojurewerkz.quartzite.jobs :refer [defjob] :as j]
             [clojurewerkz.quartzite.triggers :as t]
             [clojurewerkz.quartzite.schedule.cron :refer [schedule cron-schedule]]))
 
@@ -93,26 +94,23 @@
         (devtweet creds today yesterday))
       (println (str "Unable to find data for isoCode " isoCode)))))
 
-(defrecord NoOpJob []
-  org.quartz.Job
-  (execute [this ctx]
-    (println "pooP")))
+(defjob SecondJob
+  [ctx]
+  (println "Does nothing"))
 
 (defn -main
   [& args]
   (let [;; loading config file
         config (clojure.edn/read-string (slurp (io/resource "config.edn")))
-        ;; s   (-> (qs/initialize) qs/start)
-        ;; job (j/build
-        ;;      (j/of-type NoOpJob)
-        ;;      (j/with-identity (j/key "jobs.noop.1")))
-        ;; trigger (t/build
-        ;;          (t/with-identity (t/key "triggers.1"))
-        ;;          (t/start-now)
-        ;;          (t/with-schedule (schedule
-        ;;                            (cron-schedule "*/30 * * * *"))))
-        ]
-    ;; (qs/schedule s job trigger)
+        s   (-> (qs/initialize) qs/start)
+        job (j/build
+             (j/of-type SecondJob)
+             (j/with-identity (j/key "jobs.noop.1")))
+        trigger (t/build
+                 (t/with-identity (t/key "triggers.1"))
+                 (t/start-now)
+                 (t/with-schedule (schedule
+                                   (cron-schedule "0/5 0/1 * 1/1 * ? *"))))]
+    (qs/schedule s job trigger)
     (println "Started up")
-    (bundle "NLD"))
-  )
+    (bundle "NLD")))
