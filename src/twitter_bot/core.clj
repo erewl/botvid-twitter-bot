@@ -103,7 +103,7 @@
         data (prepareData  "https://covid.ourworldindata.org/data/owid-covid-data.csv" isoCode)]
     (if (some? data)
       (let [[yesterday today] (take-last 2 data)]
-        (devtweet creds today yesterday))
+        (postTweet creds today yesterday))
       (println (str "Unable to find data for isoCode " isoCode)))))
 
 (defjob dailyTweetJob
@@ -127,6 +127,5 @@
                  (t/with-schedule (schedule
                                    (cron-schedule "0 0 13 1/1 * ? *"))))]
     (println "Started up")
-    (tweetDailyNumbersForCountry "NLD")
-    ;; (qs/schedule s job trigger)
+    (qs/schedule s job trigger)
     ))
