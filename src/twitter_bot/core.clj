@@ -86,7 +86,7 @@
   (println (writeTweet today yesterday))
   (println (api/statuses-update creds :params {:status (writeTweet today yesterday)})))
 
-(defn devtweet [creds today yesterday]
+(defn devTweet [creds today yesterday]
   (println (writeTweet today yesterday)))
 
 ;; "https://covid.ourworldindata.org/data/owid-covid-data.csv"
@@ -127,5 +127,4 @@
                  (t/with-schedule (schedule
                                    (cron-schedule "0 0 13 1/1 * ? *"))))]
     (println "Started up")
-    (qs/schedule s job trigger)
-    ))
+    (qs/schedule s job trigger)))

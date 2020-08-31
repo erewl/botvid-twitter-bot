@@ -1,6 +1,6 @@
 FROM clojure
 LABEL maintainer="erewl"
- 
+
 ENV CONSUMER_KEY "$CONSUMER_KEY"                            
 ENV CONSUMER_SECRET "$CONSUMER_SECRET"                            
 ENV ACCESS_TOKEN "$ACCESS_TOKEN"                            
@@ -16,3 +16,5 @@ COPY . .
 
 # Build an uberjar release artifact.
 RUN mv "$(lein uberjar | sed -n 's/^Created \(.*standalone\.jar\)/\1/p')" app-standalone.jar
+
+CMD java -jar app-standalone.jar

@@ -2,4 +2,4 @@ build:
   docker:
     worker: Dockerfile
 run:
-  worker: java -XX:MaxPermSize=256m -jar app-standalone.jar
+  worker: java -jar app-standalone.jar
