@@ -16,5 +16,6 @@ COPY . .
 
 # Build an uberjar release artifact.
 RUN mv "$(lein uberjar | sed -n 's/^Created \(.*standalone\.jar\)/\1/p')" app-standalone.jar
+RUN lein deps
 
-CMD java -jar app-standalone.jar
+CMD lein trampoline run

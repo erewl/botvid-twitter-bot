@@ -54,8 +54,9 @@
 (defn getFile [url fileName]
   (let [currentDate (format/unparse custom-formatter (time/now))
         filePath (str   "data/" currentDate "_" fileName ".csv")
-        deleteCount (deleteOutdatedFilesExcept dataDirectory filePath)]
-    (println (str "Deleted " deleteCount " outdated files!"))
+        ;; deleteCount (deleteOutdatedFilesExcept dataDirectory filePath)
+        ]
+    ;; (println (str "Deleted " deleteCount " outdated files!"))
     (if (.exists (io/file filePath))
       (let []
         (println "Using existing files: " filePath)
