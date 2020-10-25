@@ -87,10 +87,8 @@
     (if (= (count data) 2)
       (let [t (first (filter (fn [e] (= today (:date e))) data))
             y (first (filter (fn [e] (= yesterday (:date e))) data))]
-        (println t)
-        (println y)
         (postTweet creds t y))
-      (println (str "Unable to find data for isoCode " isoCode)))))
+      (println (str "Incomplete data: " data)))))
 
 (defn tweetWeeklyNumbersForCountry [isoCode]
   (println "poop"))
