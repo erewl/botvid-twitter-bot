@@ -12,3 +12,6 @@ pom.xml.asc
 .hg/
 .calva/*
 data/*
+.DS_Store
+.idea/
+*.iml

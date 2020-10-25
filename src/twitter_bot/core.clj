@@ -1,7 +1,6 @@
 (ns twitter-bot.core
   (:gen-class)
-  (:import [java.time Instant]
-           [java.time Instant Duration])
+  (:import [java.time Instant Duration LocalDate])
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clj-time.format :as format]
@@ -10,7 +9,6 @@
             [twttr.api :as api]
             [twttr.auth :refer [env->UserCredentials]]
             [twitter-bot.files.read :as fl]
-            [overtone.at-at :as overtone]
             ;; quartzite
             [clojurewerkz.quartzite.scheduler :as qs]
             [clojurewerkz.quartzite.jobs :refer [defjob] :as j]
@@ -18,11 +16,12 @@
             [clojurewerkz.quartzite.schedule.cron :refer [schedule cron-schedule]]))
 
 (def custom-formatter (format/formatter "yyyy-MM-dd"))
+(def java-formatter (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd"))
 
 (defn parseDate [dateString]
   (format/parse custom-formatter dateString))
 
-(defn extractData [header data countryIsoCode]
+(defn extractData [header data countryIsoCode todayDate yesterdayDate]
   (let [countryIndex (.indexOf header "location")
         isoCodeIndex (.indexOf header "iso_code")
         newCasesIndex (.indexOf header "new_cases")
@@ -31,8 +30,10 @@
         totalCasesIndex (.indexOf header "total_cases")
         totalDeathsIndex (.indexOf header "total_deaths")
         ;; data prep
-        filtered-data (filter (fn [element] (= countryIsoCode (nth element isoCodeIndex))) data)
-        preparedData (map (fn [elements] {:date (parseDate (nth elements dateIndex))
+        filtered-data (filter (fn [element] (and (= countryIsoCode (nth element isoCodeIndex))
+                                                 (or (= todayDate (nth element dateIndex))
+                                                     (= yesterdayDate (nth element dateIndex))))) data)
+        preparedData (map (fn [elements] {:date (nth elements dateIndex)
                                           :isoCode (nth elements isoCodeIndex)
                                           :country (nth elements countryIndex)
                                           :newCases (int (Double/parseDouble (nth elements newCasesIndex)))
@@ -41,47 +42,28 @@
                                           :totalDeaths (int (Double/parseDouble (nth elements totalDeathsIndex)))}) filtered-data)]
     preparedData))
 
-(defn deleteOutdatedFilesExcept [path fileName]
-  (let [directory (clojure.java.io/file path)
-        files (file-seq directory)
-        filesToDelete (filter (fn [file] (not (.contains (.getPath file) fileName))) files)
-        deletedFiles (map (fn [file] (.delete file)) filesToDelete)]
-    ;; filtering out the failed delete attempts
-    (count (filter (fn [f] f) deletedFiles))))
-
-(def dataDirectory "data")
+(def dataDirectory "data/")
 
 (defn getFile [url fileName]
-  (let [currentDate (format/unparse custom-formatter (time/now))
-        filePath (str   "data/" currentDate "_" fileName ".csv")
-        ;; deleteCount (deleteOutdatedFilesExcept dataDirectory filePath)
-        ]
-    ;; (println (str "Deleted " deleteCount " outdated files!"))
-    (if (.exists (io/file filePath))
-      (let []
-        (println "Using existing files: " filePath)
-        filePath)
-      (let []
-        (clojure.java.io/copy
-         (:body (client/get url {:as :stream}))
-         (java.io.File. filePath))
-        filePath))))
+  (let [filePath (str   "data/" fileName ".csv")]
+    (clojure.java.io/copy
+     (:body (client/get url {:as :stream}))
+     (java.io.File. filePath))
+    filePath))
 
 (defn moreOrLessThanYesterDay [number]
   (cond
-    (> number 0) (str " (" number " more than yesterday)")
-    (< number 0) (str " (" (Math/abs number) " less than yesterday)")
-    :else " (same as yesterday)"))
+    (> number 0) (str " (" number " more than the day before)")
+    (< number 0) (str " (" (Math/abs number) " less than the day before)")
+    :else " (same as the day before)"))
 
-(defn writeTweet [today yesterday]
-  (str "Covid-19 Numbers - " (:country today) " - " (format/unparse custom-formatter (:date today))
-       "\n\nNew Cases:\t  " (:newCases today) (moreOrLessThanYesterDay (- (:newCases today) (:newCases yesterday)))
-       "\nTotal Cases:\t  " (:totalCases today)
-       "\n\nNew Deaths:\t  " (:newDeaths today) (moreOrLessThanYesterDay (- (:newDeaths today) (:newDeaths yesterday)))
-       "\nTotal Deaths:\t  " (:totalDeaths today)
-       "\n\nStay healthy and stay safe!"))
-
-(def my-pool (overtone/mk-pool))
+(defn writeTweet [todayData yesterdayData]
+  (str "🦠 Covid19 Numbers - " (:country todayData) " - " (:date yesterdayData) " 🦠"
+       "\n\nNew Cases:\t  " (:newCases todayData) (moreOrLessThanYesterDay (- (:newCases todayData) (:newCases yesterdayData)))
+       "\nTotal Cases:\t  " (:totalCases todayData)
+       "\n\nNew Deaths:\t  " (:newDeaths todayData) (moreOrLessThanYesterDay (- (:newDeaths todayData) (:newDeaths yesterdayData)))
+       "\nTotal Deaths:\t  " (:totalDeaths todayData)
+       "\n\nStay healthy and stay safe! 💪😷"))
 
 (defn postTweet [creds today yesterday]
   (println (writeTweet today yesterday))
@@ -91,41 +73,71 @@
   (println (writeTweet today yesterday)))
 
 ;; "https://covid.ourworldindata.org/data/owid-covid-data.csv"
-(defn prepareData [link countryIsoCode]
+(defn prepareData [link countryIsoCode today yesterday]
   (let [download     (getFile link "covid-data")
         data-file download
         csv (fl/read-file data-file)
         header (first csv)
-        data (extractData header  (drop 1 csv) countryIsoCode)]
+        data (extractData header  (drop 1 csv) countryIsoCode today yesterday)]
     data))
 
-(defn tweetDailyNumbersForCountry [isoCode]
+(defn tweetDailyNumbersForCountry [isoCode today yesterday]
   (let [creds (env->UserCredentials)
-        data (prepareData  "https://covid.ourworldindata.org/data/owid-covid-data.csv" isoCode)]
-    (if (some? data)
-      (let [[yesterday today] (take-last 2 data)]
-        (postTweet creds today yesterday))
+        data (prepareData  "https://covid.ourworldindata.org/data/owid-covid-data.csv" isoCode today yesterday)]
+    (if (= (count data) 2)
+      (let [t (first (filter (fn [e] (= today (:date e))) data))
+            y (first (filter (fn [e] (= yesterday (:date e))) data))]
+        (println t)
+        (println y)
+        (postTweet creds t y))
       (println (str "Unable to find data for isoCode " isoCode)))))
+
+(defn tweetWeeklyNumbersForCountry [isoCode]
+  (println "poop"))
 
 (defjob dailyTweetJob
   [ctx]
-  (tweetDailyNumbersForCountry "NLD"))
+  (let [today (LocalDate/now)
+        yesterday (.minusDays today 1)
+        ft (.format today java-formatter)
+        fy (.format yesterday java-formatter)]
+    (tweetDailyNumbersForCountry "NLD" ft fy)))
+
+(defjob weeklyTweetJob
+  [ctx]
+  (tweetWeeklyNumbersForCountry "NLD"))
+
+(defn strdt [date]
+  (.format
+   (java.text.SimpleDateFormat. "yyyy-MM-dd" date)))
 
 (defn -main
   [& args]
   (let [;; loading config file
-        config (clojure.edn/read-string (slurp (io/resource "config.edn")))
+        config        (clojure.edn/read-string (slurp (io/resource "config.edn")))
         ;; scheduler
-        s   (-> (qs/initialize) qs/start)
+        s             (-> (qs/initialize) qs/start)
         ;; jobs
-        job (j/build
-             (j/of-type dailyTweetJob)
-             (j/with-identity (j/key "jobs.dailyTweet.1")))
+        job           (j/build
+                       (j/of-type dailyTweetJob)
+                       (j/with-identity (j/key "jobs.dailyTweet.1")))
+        weeklyJob     (j/build
+                       (j/of-type weeklyTweetJob)
+                       (j/with-identity (j/key "jobs.weeklyTweet.1")))
         ;; cron trigger
-        trigger (t/build
-                 (t/with-identity (t/key "triggers.1"))
-                 (t/start-now)
-                 (t/with-schedule (schedule
-                                   (cron-schedule "0 0 13 1/1 * ? *"))))]
-    (println "Started up")
-    (qs/schedule s job trigger)))
+        trigger       (t/build
+                       (t/with-identity (t/key "triggers.1"))
+                       (t/start-now)
+                       (t/with-schedule (schedule
+                                         (cron-schedule "0 0 14 1/1 * ? *"))))
+        ;; every monday at 4 (UTC) +2 in summertime
+        weeklyTrigger (t/build
+                       (t/with-identity (t/key "triggers.2"))
+                       (t/start-now)
+                       (t/with-schedule (schedule
+                                         (cron-schedule "0 0 14 ? * MON *"))))]
+
+    ;;0 0 18 ? * MON *
+    (qs/schedule s job trigger)
+    ;; (qs/schedule s weeklyJob weeklyTrigger)
+    ))
