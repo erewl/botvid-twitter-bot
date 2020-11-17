@@ -6,6 +6,7 @@
             [clj-time.format :as format]
             [clj-time.core :as time]
             [clj-http.client :as client]
+            ;; [clojure.tools.logging :as log]
             [twttr.api :as api]
             [twttr.auth :refer [env->UserCredentials]]
             [twitter-bot.files.read :as fl]
@@ -14,6 +15,9 @@
             [clojurewerkz.quartzite.jobs :refer [defjob] :as j]
             [clojurewerkz.quartzite.triggers :as t]
             [clojurewerkz.quartzite.schedule.cron :refer [schedule cron-schedule]]))
+
+(use 'clojure.tools.logging)
+
 
 (def custom-formatter (format/formatter "yyyy-MM-dd"))
 (def java-formatter (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd"))
@@ -42,10 +46,10 @@
                                           :totalDeaths (int (Double/parseDouble (nth elements totalDeathsIndex)))}) filtered-data)]
     preparedData))
 
-(def dataDirectory "data/")
+(def dataDirectory "./")
 
 (defn getFile [url fileName]
-  (let [filePath (str   "data/" fileName ".csv")]
+  (let [filePath (str dataDirectory fileName ".csv")]
     (clojure.java.io/copy
      (:body (client/get url {:as :stream}))
      (java.io.File. filePath))
@@ -66,11 +70,11 @@
        "\n\nStay healthy and stay safe! 💪😷"))
 
 (defn postTweet [creds today yesterday]
-  (println (writeTweet today yesterday))
-  (println (api/statuses-update creds :params {:status (writeTweet today yesterday)})))
+  (info (writeTweet today yesterday))
+  (info (api/statuses-update creds :params {:status (writeTweet today yesterday)})))
 
 (defn devTweet [creds today yesterday]
-  (println (writeTweet today yesterday)))
+  (info (writeTweet today yesterday)))
 
 ;; "https://covid.ourworldindata.org/data/owid-covid-data.csv"
 (defn prepareData [link countryIsoCode today yesterday]
@@ -88,10 +92,10 @@
       (let [t (first (filter (fn [e] (= today (:date e))) data))
             y (first (filter (fn [e] (= yesterday (:date e))) data))]
         (postTweet creds t y))
-      (println (str "Incomplete data: " data)))))
+      (info (str "Incomplete data: " data)))))
 
 (defn tweetWeeklyNumbersForCountry [isoCode]
-  (println "poop"))
+  (info "poop"))
 
 (defjob dailyTweetJob
   [ctx]
@@ -108,6 +112,12 @@
 (defn strdt [date]
   (.format
    (java.text.SimpleDateFormat. "yyyy-MM-dd" date)))
+
+(defn manualTweet [today]
+  (let [yesterday (.minusDays today 1)
+        ft (.format today java-formatter)
+        fy (.format yesterday java-formatter)]
+    (tweetDailyNumbersForCountry "NLD" ft fy)))
 
 (defn -main
   [& args]
@@ -135,7 +145,11 @@
                        (t/with-schedule (schedule
                                          (cron-schedule "0 0 14 ? * MON *"))))]
 
-    ;;0 0 18 ? * MON *
     (qs/schedule s job trigger)
+    ;; (let [f (range 0 1)
+    ;;       today (LocalDate/of 2020 11 13)
+    ;;       days (map (fn [d] (.plusDays today d)) f)]
+    ;;   (run! (fn [x] (manualTweet x)) days))
+        ;; (tweetDailyNumbersForCountry "NLD" ft fy)
     ;; (qs/schedule s weeklyJob weeklyTrigger)
     ))

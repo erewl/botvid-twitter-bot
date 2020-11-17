@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [org.clojure/data.csv "1.0.0"]
                  [org.clojure/tools.logging "1.1.0"]
+                 [ch.qos.logback/logback-classic "1.1.3"]
                  [clj-http "3.10.1"]
                  [clj-time "0.15.2"]
                  [twttr "3.2.3"]

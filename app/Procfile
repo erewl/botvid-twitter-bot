@@ -1,0 +1,1 @@
+worker: java -jar botvid19-standalone.jar
