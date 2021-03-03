@@ -137,19 +137,18 @@
                        (t/with-identity (t/key "triggers.1"))
                        (t/start-now)
                        (t/with-schedule (schedule
-                                         (cron-schedule "0 0 14 1/1 * ? *"))))
+                                         (cron-schedule "0 0 15 1/1 * ? *"))))
         ;; every monday at 4 (UTC) +2 in summertime
         weeklyTrigger (t/build
                        (t/with-identity (t/key "triggers.2"))
                        (t/start-now)
                        (t/with-schedule (schedule
-                                         (cron-schedule "0 0 14 ? * MON *"))))]
+                                         (cron-schedule "0 0 15 ? * MON *"))))]
 
     (qs/schedule s job trigger)
     ;; (let [f (range 0 1)
-    ;;       today (LocalDate/of 2020 11 13)
+    ;;       today (LocalDate/of 2021 3 3)
     ;;       days (map (fn [d] (.plusDays today d)) f)]
     ;;   (run! (fn [x] (manualTweet x)) days))
-        ;; (tweetDailyNumbersForCountry "NLD" ft fy)
     ;; (qs/schedule s weeklyJob weeklyTrigger)
     ))
